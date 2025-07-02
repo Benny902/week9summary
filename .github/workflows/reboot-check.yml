@@ -15,12 +15,12 @@ jobs:
     steps:
       - name: Write SSH key
         run: |
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.VM_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
 
       - name: Reboot VM via SSH
         run: |
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa azureuser@${{ needs.get-vm-ip.outputs.vm_ip }} "sudo reboot" || true
+          ssh -o StrictHostKeyChecking=no -i key.pem azureuser@${{ needs.get-vm-ip.outputs.vm_ip }} "sudo reboot" || true
           echo "Waiting 90s for reboot..."
           sleep 90
 
