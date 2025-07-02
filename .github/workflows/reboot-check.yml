@@ -1,0 +1,42 @@
+name: Reboot and Healthcheck
+
+on:
+  workflow_dispatch:
+
+jobs:
+  reboot-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get VM IP (via Azure CLI)
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get Public IP
+        id: get_ip
+        run: |
+          VM_IP=$(az vm show -d -g devops-week9-rg -n week9vm --query publicIps -o tsv)
+          echo "VM_IP=$VM_IP" >> $GITHUB_ENV
+
+      - name: Reboot VM via SSH
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.VM_HOST }} "sudo reboot" || true
+          echo "Waiting 90s for reboot..."
+          sleep 90
+
+      - name: Health Check After Reboot
+        run: |
+          echo "Rechecking app at http://$VM_IP:3000" > reboot-healthcheck.log
+          if curl --fail --silent http://$VM_IP:3000; then
+            echo "App came back online" >> reboot-healthcheck.log
+          else
+            echo "App failed after reboot" >> reboot-healthcheck.log
+            exit 1
+          fi
+
+      - name: Upload Healthcheck Result
+        uses: actions/upload-artifact@v4
+        with:
+          name: reboot-healthcheck-log
+          path: reboot-healthcheck.log
