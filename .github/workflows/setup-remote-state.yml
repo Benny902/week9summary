@@ -42,13 +42,7 @@ jobs:
         id: vars
         run: echo "RESOURCE_GROUP=devops-week9-rg" >> "$GITHUB_ENV"
 
-      - name: Create Resource Group (if needed)
-        run: |
-          az group create \
-            --name "$RESOURCE_GROUP" \
-            --location "${{ inputs.location }}"
-
-      - name: Create Storage Account
+      - name: Create Storage Account (idempotent)
         run: |
           az storage account create \
             --name "${{ inputs.storage-account-name }}" \
@@ -70,7 +64,7 @@ jobs:
           az storage container create \
             --name "${{ inputs.container-name }}" \
             --account-name "${{ inputs.storage-account-name }}" \
-            --account-key "${{ steps.get-key.outputs.key }}"
+            --account-key "${{ steps.get-key.outputs.key }}" || true
 
       - name: Generate backend.tf
         run: |
@@ -94,8 +88,7 @@ jobs:
 
           BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
           if [[ "$GITHUB_REF" == refs/heads/* ]]; then
-            echo "Pushing to branch $BRANCH_NAME..."
             git push origin HEAD:$GITHUB_REF
           else
-            echo "Not a branch (probably a tag or detached head), skipping push."
+            echo "Skipping push — not on a branch."
           fi
