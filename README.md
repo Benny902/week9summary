@@ -224,6 +224,30 @@ resource "azurerm_network_security_group" "nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
+  security_rule {
+    name                       = "Allow-Backend"
+    priority                   = 1002
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3000"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "Allow-Frontend"
+    priority                   = 1003
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "4000"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
 }
 
 resource "azurerm_public_ip" "public_ip" {
@@ -245,6 +269,11 @@ resource "azurerm_network_interface" "nic" {
     private_ip_address_allocation = "Static"
     public_ip_address_id          = azurerm_public_ip.public_ip.id
   }
+}
+
+resource "azurerm_subnet_network_security_group_association" "subnet_nsg_assoc" {
+  subnet_id                 = azurerm_subnet.subnet.id
+  network_security_group_id = azurerm_network_security_group.nsg.id
 }
 ```
 </details>
@@ -533,6 +562,9 @@ which calls
 ```
 </details>
 
+### Screenshot of `terraform apply` success :  
+![alt text](images/terraform-apply-outputs.png)
+
 ## Automatic Deployment and Healthcheck Script
 
 <details> <summary> deploy-webapp.yml </summary>
@@ -758,6 +790,12 @@ jobs:
 ```
 </details>
 
+### example of latest push deployment log :
+Before and after VM restart:
+![alt text](images/deployment-log.png)
+
+
+
 ---
 
 ## Resilience Test
@@ -813,13 +851,13 @@ jobs:
 
 <br>
 
-Reboot check:
-[image]
+Reboot check: https://github.com/Benny902/week9summary/actions/runs/16027810765  
+![alt text](images/reboot-vm.png)
 
 <br>
 
 Before and after VM restart:
-[image]
+![alt text](images/before-after.png)
 
 ---
 
