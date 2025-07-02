@@ -18,8 +18,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository with latest commit
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Azure Login
         uses: azure/login@v1
@@ -42,19 +44,6 @@ jobs:
         run: |
           ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
           echo "ssh_public_key=$(cat ~/.ssh/id_rsa.pub)" >> "$GITHUB_OUTPUT"
-
-      - name: Generate backend.tf
-        run: |
-          cat <<EOF > backend.tf
-          terraform {
-            backend "azurerm" {
-              resource_group_name  = "devops-week9-rg"
-              storage_account_name = "${{ inputs.storage-account-name }}"
-              container_name       = "tfstate"
-              key                  = "terraform.tfstate"
-            }
-          }
-          EOF
 
       - name: Set Terraform Azure credentials
         run: |
