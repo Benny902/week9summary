@@ -59,9 +59,9 @@ touch main.tf
 terraform init
 ```
 
-### Create main.tf and Define Infrastructure Resources
+### Make Modular main.tf and Define Infrastructure Resources
 
-#### Create additional folder structure for modules  
+#### Modular folder structure for modules  
 
 ```css
 terraform-rg/
@@ -71,10 +71,16 @@ terraform-rg/
 └── modules/
     ├── resource_group/
     │   └── main.tf
+    │   └── variables.tf
+    │   └── outputs.tf
     ├── network/
     │   └── main.tf
+    │   └── variables.tf
+    │   └── outputs.tf
     └── vm/
         └── main.tf
+        └── variables.tf
+        └── cloud-init.sh
 ```
 
 <details> <summary> Root `main.tf`: </summary>
@@ -351,11 +357,34 @@ variable "public_ip_dep" {}
 ```
 </details>
 
+<details> <summary>  `modules/vm/cloud-init.sh` </summary>
+to initialize the vm with docker and docker-compose
+
+```bash
+#!/bin/bash
+# Update package list
+apt-get update -y
+
+# Install Docker
+apt-get install -y docker.io
+
+# Enable Docker
+systemctl enable docker
+systemctl start docker
+
+# Install Docker Compose
+curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+```
+
+</details>
+
 
 ---
 
-## Configure Remote State with Azure Storage (with Logging & Debugging)
-### Create Storage Account & Container for Remote State
+## Configure Remote State
+### Create Storage Account & Blob Container
 ```bash
 name: Setup Terraform Remote State Storage
 
@@ -560,7 +589,19 @@ which calls
         - name: Output Public IP
           run: terraform output public_ip_address
 ```
+
+What each case means in the `Conditionally Import Resource Group if Not Already in State` step:  
+1. if Terraform state contains the RG already
+- It skips import and proceeds to terraform apply.
+
+2. if Terraform state does not contain the RG, but it exists in Azure
+- It runs terraform import to avoid duplicate resource error during apply.
+
+3. if Terraform state does not contain the RG, and it doesn’t exist in Azure
+- No import needed — Terraform will create it during apply.
+
 </details>
+
 
 ### Screenshot of `terraform apply` success :  
 ![alt text](images/terraform-apply-outputs.png)
@@ -791,7 +832,9 @@ jobs:
 </details>
 
 ### example of latest push deployment log :
-Before and after VM restart:
+
+https://github.com/Benny902/week9summary/blob/main/deployment_log.md
+
 ![alt text](images/deployment-log.png)
 
 
@@ -856,7 +899,8 @@ Reboot check: https://github.com/Benny902/week9summary/actions/runs/16027810765
 
 <br>
 
-Before and after VM restart:
+Before and after VM reboot:
+
 ![alt text](images/before-after.png)
 
 ---

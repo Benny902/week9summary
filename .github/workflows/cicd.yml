@@ -55,6 +55,11 @@ jobs:
       storage-account-name: ${{ needs.setup-remote-state.outputs.storage_account_name }}
     secrets: inherit
 
+  create-and-attach-disk:
+    needs: deploy-infrastructure
+    uses: ./.github/workflows/create-disk.yml
+    secrets: inherit
+
   get-vm-ip:
     needs: deploy-infrastructure
     uses: ./.github/workflows/get-ip.yml

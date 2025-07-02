@@ -1,0 +1,36 @@
+name: Attach P1 Disk
+
+on:
+  workflow_dispatch:
+
+jobs:
+  attach-p1-disk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create and Attach P1 Premium SSD
+        run: |
+          RESOURCE_GROUP="devops-week9-rg"
+          VM_NAME="week9vm"
+          LOCATION="westeurope"
+          DISK_NAME="myP1Disk"
+
+          echo "Creating 4 GiB P1 Premium SSD ($DISK_NAME)..."
+          az disk create \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$DISK_NAME" \
+            --sku Premium_LRS \
+            --tier P1 \
+            --size-gb 4 \
+            --location "$LOCATION"
+
+          echo "Attaching $DISK_NAME to $VM_NAME..."
+          az vm disk attach \
+            --resource-group "$RESOURCE_GROUP" \
+            --vm-name "$VM_NAME" \
+            --name "$DISK_NAME"
