@@ -51,6 +51,8 @@ jobs:
   deploy-infrastructure:
     needs: setup-remote-state
     uses: ./.github/workflows/terraform-deploy.yml
+    with:
+      storage-account-name: ${{ needs.setup-remote-state.outputs.storage_account_name }}
     secrets: inherit
 
   e2e-tests:
