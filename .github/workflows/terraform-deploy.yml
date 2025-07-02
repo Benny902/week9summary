@@ -56,6 +56,19 @@ jobs:
           }
           EOF
 
+      - name: Set Terraform Azure credentials
+        run: |
+          echo '${{ secrets.AZURE_CREDENTIALS }}' > sp.json
+          export ARM_CLIENT_ID=$(jq -r .clientId sp.json)
+          export ARM_CLIENT_SECRET=$(jq -r .clientSecret sp.json)
+          export ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId sp.json)
+          export ARM_TENANT_ID=$(jq -r .tenantId sp.json)
+
+          echo "ARM_CLIENT_ID=$ARM_CLIENT_ID" >> $GITHUB_ENV
+          echo "ARM_CLIENT_SECRET=$ARM_CLIENT_SECRET" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=$ARM_TENANT_ID" >> $GITHUB_ENV
+
       - name: Terraform Init
         run: terraform init
 
