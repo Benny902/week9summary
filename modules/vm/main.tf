@@ -28,4 +28,6 @@ resource "azurerm_linux_virtual_machine" "vm" {
   tags = {
     environment = "dev"
   }
+
+  custom_data = filebase64("${path.module}/cloud-init.sh")
 }
