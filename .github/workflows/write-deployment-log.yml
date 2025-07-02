@@ -23,7 +23,7 @@ jobs:
       - name: Get VM Info (IP, Region, Size, Image)
         id: vm_info
         run: |
-          VM_JSON=$(az vm show -g bennyVMeastus2 -n myvm)
+          VM_JSON=$(az vm show -g devops-week9-rg -n week9vm)
           echo "VM_IP=$(echo $VM_JSON | jq -r '.publicIps')" >> $GITHUB_ENV
           echo "VM_LOCATION=$(echo $VM_JSON | jq -r '.location')" >> $GITHUB_ENV
           echo "VM_SIZE=$(echo $VM_JSON | jq -r '.hardwareProfile.vmSize')" >> $GITHUB_ENV
@@ -48,8 +48,8 @@ jobs:
 
           ### Azure CLI Commands Used
           - az login --use-device-code
-          - az group create --name bennyVMeastus2 --location $VM_LOCATION
-          - az vm create --resource-group bennyVMeastus2 --name myvm --image $VM_IMAGE --size $VM_SIZE ...
+          - az group create --name devops-week9-rg --location $VM_LOCATION
+          - az vm create --resource-group devops-week9-rg --name week9vm --image $VM_IMAGE --size $VM_SIZE ...
           - az network public-ip update --allocation-method Static
           - az vm open-port --port 22 ...
           - scp ./ to VM
