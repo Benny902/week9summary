@@ -1,0 +1,86 @@
+name: Write Deployment Log
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: write # need this to be able to 'push' to the repo (to update the log file)
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get VM Info (IP, Region, Size, Image)
+        id: vm_info
+        run: |
+          VM_JSON=$(az vm show -g bennyVMeastus2 -n myvm)
+          echo "VM_IP=$(echo $VM_JSON | jq -r '.publicIps')" >> $GITHUB_ENV
+          echo "VM_LOCATION=$(echo $VM_JSON | jq -r '.location')" >> $GITHUB_ENV
+          echo "VM_SIZE=$(echo $VM_JSON | jq -r '.hardwareProfile.vmSize')" >> $GITHUB_ENV
+          echo "VM_IMAGE=$(echo $VM_JSON | jq -r '.storageProfile.imageReference.offer') $(echo $VM_JSON | jq -r '.storageProfile.imageReference.sku')" >> $GITHUB_ENV
+
+      - name: Create and Append deployment_log.md
+        run: |
+          TIMESTAMP=$(TZ="Etc/GMT-3" date +"%Y-%m-%d %H:%M:%S")
+
+          echo "Appending new deployment log entry..."
+
+          cat <<EOF >> deployment_log.md
+
+          ---
+
+          ## Deployment Entry - $TIMESTAMP
+
+          **Public IP:** $VM_IP  
+          **Region:** $VM_LOCATION  
+          **VM Size:** $VM_SIZE  
+          **Image:** $VM_IMAGE
+
+          ### Azure CLI Commands Used
+          - az login --use-device-code
+          - az group create --name bennyVMeastus2 --location $VM_LOCATION
+          - az vm create --resource-group bennyVMeastus2 --name myvm --image $VM_IMAGE --size $VM_SIZE ...
+          - az network public-ip update --allocation-method Static
+          - az vm open-port --port 22 ...
+          - scp ./ to VM
+          - docker-compose up -d
+
+          ### Deployment Method
+          - GitHub Actions CI/CD (via deploy-vm.yml)
+
+          ### Healthcheck
+          - curl http://$VM_IP:3000
+
+          ### Reboot Test
+          - App recovered after reboot
+
+          ### Browser Compatibility
+          - Chrome
+          - Firefox
+          - Mobile
+          EOF
+
+      - name: Commit and push updated deployment_log.md
+        run: |
+          git config --global user.name "gh-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
+          git add deployment_log.md
+          git commit -m "Update deployment_log.md [skip ci]" || echo "No changes to commit"
+
+          BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
+          if [[ "$GITHUB_REF" == refs/heads/* ]]; then
+            echo "Pushing to branch $BRANCH_NAME..."
+            git push origin HEAD:$GITHUB_REF
+          else
+            echo "Not a branch (probably a tag or detached head), skipping push."
+          fi
