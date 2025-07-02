@@ -56,10 +56,18 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Import existing resource group
+      - name: Conditionally Import Resource Group if it Exists
         run: |
-          terraform import module.rg.azurerm_resource_group.devops_rg "/subscriptions/${{ env.ARM_SUBSCRIPTION_ID }}/resourceGroups/devops-week9-rg" || true
+          RG_NAME="devops-week9-rg"
+          SUB_ID="${{ env.ARM_SUBSCRIPTION_ID }}"
+          EXISTS=$(az group exists --name "$RG_NAME")
 
+          if [ "$EXISTS" == "true" ]; then
+            echo "Resource group exists. Importing into Terraform state..."
+            terraform import module.rg.azurerm_resource_group.devops_rg "/subscriptions/$SUB_ID/resourceGroups/$RG_NAME"
+          else
+            echo "Resource group does not exist. Terraform will create it during apply."
+          fi
 
       - name: Terraform Apply
         run: |

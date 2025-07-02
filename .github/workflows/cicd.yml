@@ -55,14 +55,19 @@ jobs:
       storage-account-name: ${{ needs.setup-remote-state.outputs.storage_account_name }}
     secrets: inherit
 
-  e2e-tests:
+  deploy-webapp:
     needs: deploy-infrastructure
-    uses: ./.github/workflows/e2e-tests.yml
+    uses: ./.github/workflows/deploy-webapp.yml
+    secrets: inherit
 
   healthcheck:
-    needs: deploy-infrastructure
+    needs: deploy-webapp
     uses: ./.github/workflows/healthcheck.yml
     secrets: inherit
+
+  e2e-tests:
+    needs: deploy-webapp
+    uses: ./.github/workflows/e2e-tests.yml
 
   write-deployment-log:
     needs: healthcheck
