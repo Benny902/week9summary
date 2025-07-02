@@ -43,7 +43,7 @@ jobs:
     needs: [backend-test, frontend-test]
     uses: ./.github/workflows/setup-remote-state.yml
     with:
-      storage-account-name: tfstateweek9${{ github.run_id }}
+      storage-account-name: tfstateweek9infra
       container-name: tfstate
       location: westeurope
     secrets: inherit
