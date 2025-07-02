@@ -40,13 +40,19 @@ jobs:
 
       - name: Set Resource Group Name
         id: vars
-        run: echo "RESOURCE_GROUP=devops-week9-rg" >> "$GITHUB_ENV"
+        run: echo "BACKEND_RG=tfstate-backend-rg" >> "$GITHUB_ENV"
 
-      - name: Create Storage Account (idempotent)
+      - name: Create Resource Group (for backend only)
+        run: |
+          az group create \
+            --name "$BACKEND_RG" \
+            --location "${{ inputs.location }}"
+
+      - name: Create Storage Account (for backend state)
         run: |
           az storage account create \
             --name "${{ inputs.storage-account-name }}" \
-            --resource-group "$RESOURCE_GROUP" \
+            --resource-group "$BACKEND_RG" \
             --location "${{ inputs.location }}" \
             --sku Standard_LRS
 
