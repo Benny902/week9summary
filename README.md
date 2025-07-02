@@ -1,10 +1,11 @@
 # week9summary
 # Week 9 – Summary Task: Terraform on Azure
 
+this is built on top of 'week8summary' - https://github.com/Benny902/week8summary  
+with the addition Objective of week 9 summary task:
+
 ### Objective
-Create a complete infrastructure solution using Terraform on Azure, including networking,
-VM provisioning, remote state storage, and optional CI/CD automation. Document all steps
-and ensure a working deployment.
+Create a complete infrastructure solution using Terraform on Azure, including networking, VM provisioning, remote state storage, and optional CI/CD automation. Document all steps and ensure a working deployment.
 
 ---
 

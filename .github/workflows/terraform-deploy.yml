@@ -61,6 +61,9 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Import existing resource group
+        run: terraform import module.rg.azurerm_resource_group.devops_rg "/subscriptions/${{ env.ARM_SUBSCRIPTION_ID }}/resourceGroups/devops-week9-rg"
+
       - name: Terraform Apply
         run: |
           terraform apply -auto-approve \
