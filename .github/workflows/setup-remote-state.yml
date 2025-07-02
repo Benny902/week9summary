@@ -60,7 +60,7 @@ jobs:
         id: get-key
         run: |
           ACCOUNT_KEY=$(az storage account keys list \
-            --resource-group "$RESOURCE_GROUP" \
+            --resource-group "$BACKEND_RG" \
             --account-name "${{ inputs.storage-account-name }}" \
             --query '[0].value' -o tsv)
           echo "key=$ACCOUNT_KEY" >> "$GITHUB_OUTPUT"
