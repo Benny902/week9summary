@@ -77,21 +77,105 @@ terraform-rg/
         └── main.tf
 ```
 
-### `modules/resource_group/main.tf`
+<details> <summary> Root `main.tf`: </summary>
+
+```bash
+provider "azurerm" {
+  features {}
+}
+
+module "rg" {
+  source   = "./modules/resource_group"
+  name     = "devops-week9-rg"
+  location = var.location
+}
+
+module "network" {
+  source  = "./modules/network"
+  rg_name = module.rg.name
+  location = var.location
+}
+
+module "vm" {
+  source           = "./modules/vm"
+  rg_name          = module.rg.name
+  location         = var.location
+  vm_name          = var.vm_name
+  admin_username   = var.admin_username
+  ssh_public_key   = var.ssh_public_key
+  nic_id           = module.network.nic_id
+  public_ip_dep    = module.network
+
+  depends_on = [module.network]
+}
+```
+</details>
+
+<details> <summary> Root `variables.tf`: </summary>
+
+```bash
+variable "location" {
+  default = "West Europe"
+}
+
+variable "vm_name" {
+  default = "week9vm"
+}
+
+variable "admin_username" {
+  default = "azureuser"
+}
+
+variable "ssh_public_key" {}
+```
+</details>
+
+<details> <summary> Root `outputs.tf`: </summary>
+
+```bash
+# Resource Group Outputs
+output "rg_name" {
+  value = module.rg.name
+}
+
+output "rg_location" {
+  value = module.rg.location
+}
+
+output "rg_id" {
+  value = module.rg.id
+}
+
+# Network Outputs
+output "nic_id" {
+  value = module.network.nic_id
+}
+
+output "public_ip_address" {
+  value = module.network.public_ip
+}
+```
+</details>
+
+<details> <summary>  `modules/resource_group/main.tf` </summary>
 ```bash
 resource "azurerm_resource_group" "devops_rg" {
   name     = var.name
   location = var.location
 }
 ```
+</details>
 
-### `modules/resource_group/variables.tf`
+<details> <summary>  `modules/resource_group/variables.tf` </summary>
+
 ```bash
 variable "name" {}
 variable "location" {}
 ```
+</details>
 
-### `modules/resource_group/outputs.tf`
+<details> <summary> `modules/resource_group/outputs.tf` </summary>
+
 ```bash
 output "name" {
   value = azurerm_resource_group.devops_rg.name
@@ -105,8 +189,10 @@ output "id" {
   value = azurerm_resource_group.devops_rg.id
 }
 ```
+</details>
 
-### `modules/network/main.tf`
+<details> <summary> `modules/network/main.tf` </summary>
+
 ```bash
 resource "azurerm_virtual_network" "vnet" {
   name                = "week9-vnet"
@@ -161,14 +247,18 @@ resource "azurerm_network_interface" "nic" {
   }
 }
 ```
+</details>
 
-### `modules/network/variables.tf`
+<details> <summary>  `modules/network/variables.tf` </summary>
+
 ```bash
 variable "location" {}
 variable "rg_name" {}
 ```
+</details>
 
-### `modules/network/outputs.tf`
+<details> <summary>  `modules/network/outputs.tf` </summary>
+
 ```bash
 output "nic_id" {
   value = azurerm_network_interface.nic.id
@@ -178,8 +268,10 @@ output "public_ip" {
   value = azurerm_public_ip.public_ip.ip_address
 }
 ```
+</details>
 
-### `modules/vm/main.tf`
+<details> <summary>  `modules/vm/main.tf` </summary>
+
 ```bash
 resource "azurerm_linux_virtual_machine" "vm" {
   name                  = var.vm_name
@@ -207,10 +299,18 @@ resource "azurerm_linux_virtual_machine" "vm" {
     sku       = "18.04-LTS"
     version   = "latest"
   }
+
+  tags = {
+    environment = "dev"
+  }
+
+  custom_data = filebase64("${path.module}/cloud-init.sh")
 }
 ```
+</details>
 
-### `modules/vm/variables.tf`
+<details> <summary>  `modules/vm/variables.tf` </summary>
+
 ```bash
 variable "vm_name" {}
 variable "location" {}
@@ -220,88 +320,216 @@ variable "ssh_public_key" {}
 variable "nic_id" {}
 variable "public_ip_dep" {}
 ```
-
-### Root `main.tf`:
-
-```bash
-provider "azurerm" {
-  features {}
-}
-
-module "rg" {
-  source   = "./modules/resource_group"
-  name     = "devops-week9-rg"
-  location = var.location
-}
-
-module "network" {
-  source  = "./modules/network"
-  rg_name = module.rg.name
-  location = var.location
-}
-
-module "vm" {
-  source           = "./modules/vm"
-  rg_name          = module.rg.name
-  location         = var.location
-  vm_name          = var.vm_name
-  admin_username   = var.admin_username
-  ssh_public_key   = var.ssh_public_key
-  nic_id           = module.network.nic_id
-  public_ip_dep    = module.network
-
-  depends_on = [module.network]
-}
-```
-
-`variables.tf`:
-```bash
-variable "location" {
-  default = "West Europe"
-}
-
-variable "vm_name" {
-  default = "week9vm"
-}
-
-variable "admin_username" {
-  default = "azureuser"
-}
-
-variable "ssh_public_key" {}
-```
-
-`outputs.tf`:
-```bash
-# Resource Group Outputs
-output "rg_name" {
-  value = module.rg.name
-}
-
-output "rg_location" {
-  value = module.rg.location
-}
-
-output "rg_id" {
-  value = module.rg.id
-}
-
-# Network Outputs
-output "nic_id" {
-  value = module.network.nic_id
-}
-
-output "public_ip_address" {
-  value = module.network.public_ip
-}
-```
-
-### Initialize and Apply
-
+</details>
 
 
 ---
 
 ## Configure Remote State with Azure Storage (with Logging & Debugging)
+### Create Storage Account & Container for Remote State
+```bash
+name: Setup Terraform Remote State Storage
+
+on:
+  workflow_call:
+    inputs:
+      storage-account-name:
+        required: true
+        type: string
+      container-name:
+        required: true
+        type: string
+      key:
+        required: false
+        default: terraform.tfstate
+        type: string
+      location:
+        required: false
+        default: westeurope
+        type: string
+    secrets:
+      AZURE_CREDENTIALS:
+        required: true
+
+permissions:
+  contents: write # required to commit backend.tf
+
+jobs:
+  setup-remote-state:
+    name: Configure Azure Storage Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set Resource Group Name
+        id: vars
+        run: echo "BACKEND_RG=tfstate-backend-rg" >> "$GITHUB_ENV"
+
+      - name: Create Resource Group (for backend only)
+        run: |
+          az group create \
+            --name "$BACKEND_RG" \
+            --location "${{ inputs.location }}"
+
+      - name: Create Storage Account (for backend state)
+        run: |
+          az storage account create \
+            --name "${{ inputs.storage-account-name }}" \
+            --resource-group "$BACKEND_RG" \
+            --location "${{ inputs.location }}" \
+            --sku Standard_LRS
+
+      - name: Get Storage Account Key
+        id: get-key
+        run: |
+          ACCOUNT_KEY=$(az storage account keys list \
+            --resource-group "$BACKEND_RG" \
+            --account-name "${{ inputs.storage-account-name }}" \
+            --query '[0].value' -o tsv)
+          echo "key=$ACCOUNT_KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Create Blob Container
+        run: |
+          az storage container create \
+            --name "${{ inputs.container-name }}" \
+            --account-name "${{ inputs.storage-account-name }}" \
+            --account-key "${{ steps.get-key.outputs.key }}" || true
+
+      - name: Generate backend.tf
+        run: |
+          cat <<EOF > backend.tf
+          terraform {
+            backend "azurerm" {
+              resource_group_name  = "tfstate-backend-rg"
+              storage_account_name = "${{ inputs.storage-account-name }}"
+              container_name       = "${{ inputs.container-name }}"
+              key                  = "${{ inputs.key }}"
+            }
+          }
+          EOF
+
+      - name: Commit and Push backend.tf
+        run: |
+          git config --global user.name "gh-actions"
+          git config --global user.email "github-actions@users.noreply.github.com"
+          git add backend.tf
+          git commit -m "Add backend.tf for remote state [skip ci]" || echo "No changes to commit"
+
+          BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}")
+          if [[ "$GITHUB_REF" == refs/heads/* ]]; then
+            git push origin HEAD:$GITHUB_REF
+          else
+            echo "Skipping push — not on a branch."
+          fi
+```
+- which also creates `backend.tf` file based on the created Storage Account
+
+
+## Apply Infrastructure
+Apply infrastructure from main `CICD.yml`:
+```yml
+  deploy-infrastructure:
+    needs: setup-remote-state
+    uses: ./.github/workflows/terraform-deploy.yml
+    with:
+      storage-account-name: ${{ needs.setup-remote-state.outputs.storage_account_name }}
+    secrets: inherit
+```
+
+which calls  
+<details> <summary> `terraform-deploy.yml`: </summary>
+
+```yml
+  name: Terraform Azure Deployment
+
+  on:
+    workflow_call:
+      inputs:
+        storage-account-name:
+          required: true
+          type: string
+      secrets:
+        AZURE_CREDENTIALS:
+          required: true
+        VM_SSH_KEY:
+          required: true
+
+  jobs:
+    deploy:
+      name: Provision Azure Infrastructure with Terraform
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout Repository with latest commit
+          uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
+
+        - name: Azure Login
+          uses: azure/login@v1
+          with:
+            creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+        - name: Set up Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: 1.8.5
+
+        - name: Write SSH Private Key
+          run: |
+            mkdir -p ~/.ssh
+            echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+
+        - name: Derive SSH Public Key
+          id: ssh
+          run: |
+            ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
+            echo "ssh_public_key=$(cat ~/.ssh/id_rsa.pub)" >> "$GITHUB_OUTPUT"
+
+        - name: Set Terraform Azure credentials
+          run: |
+            echo '${{ secrets.AZURE_CREDENTIALS }}' > sp.json
+            echo "ARM_CLIENT_ID=$(jq -r .clientId sp.json)" >> $GITHUB_ENV
+            echo "ARM_CLIENT_SECRET=$(jq -r .clientSecret sp.json)" >> $GITHUB_ENV
+            echo "ARM_SUBSCRIPTION_ID=$(jq -r .subscriptionId sp.json)" >> $GITHUB_ENV
+            echo "ARM_TENANT_ID=$(jq -r .tenantId sp.json)" >> $GITHUB_ENV
+
+        - name: Terraform Init
+          run: terraform init
+
+        - name: Conditionally Import Resource Group if Not Already in State
+          run: |
+            RG_NAME="devops-week9-rg"
+            SUB_ID="${{ env.ARM_SUBSCRIPTION_ID }}"
+
+            if terraform state list | grep -q "module.rg.azurerm_resource_group.devops_rg"; then
+              echo "Resource group already managed in Terraform state. Skipping import."
+            else
+              EXISTS=$(az group exists --name "$RG_NAME")
+              if [ "$EXISTS" == "true" ]; then
+                echo "Resource group exists. Importing into Terraform state..."
+                terraform import -lock=false module.rg.azurerm_resource_group.devops_rg "/subscriptions/$SUB_ID/resourceGroups/$RG_NAME"
+              else
+                echo "Resource group does not exist. Terraform will create it during apply."
+              fi
+            fi
+
+        - name: Terraform Apply
+          run: |
+            terraform apply -auto-approve \
+              -var="ssh_public_key=${{ steps.ssh.outputs.ssh_public_key }}"
+
+        - name: Output Public IP
+          run: terraform output public_ip_address
+```
+</details>
 
 ### Create Storage Account & Container for Remote State
