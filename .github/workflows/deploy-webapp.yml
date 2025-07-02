@@ -2,6 +2,13 @@ name: Deploy WebApp to Azure VM
 
 on:
   workflow_call:
+    inputs:
+      vm_ip:
+        required: true
+        type: string
+    secrets:
+      VM_SSH_KEY:
+        required: true
 
 jobs:
   deploy-vm:
@@ -18,11 +25,11 @@ jobs:
 
       - name: Copy files to VM with rsync
         run: |
-          rsync -az --delete --exclude='.git' --exclude='node_modules' -e "ssh -i key.pem -o StrictHostKeyChecking=no" ./ ${{ secrets.VM_HOST }}:/home/azureuser/week9project
+          rsync -az --delete --exclude='.git' --exclude='node_modules' -e "ssh -i key.pem -o StrictHostKeyChecking=no" ./ azureuser@${{ inputs.vm_ip }}:/home/azureuser/week9project
 
       - name: Deploy with docker-compose
         run: |
-          ssh -i key.pem -o StrictHostKeyChecking=no ${{ secrets.VM_HOST }} "
+          ssh -i key.pem -o StrictHostKeyChecking=no azureuser@${{ inputs.vm_ip }} "
             cd /home/azureuser/week9project &&
             sudo docker-compose down --remove-orphans &&
             sudo docker-compose up -d --build
@@ -30,7 +37,7 @@ jobs:
 
       - name: Healthcheck and get logs
         run: |
-          ssh -i key.pem -o StrictHostKeyChecking=no ${{ secrets.VM_HOST }} "
+          ssh -i key.pem -o StrictHostKeyChecking=no azureuser@${{ inputs.vm_ip }} "
             sudo docker ps
           " > remote_logs.txt
 

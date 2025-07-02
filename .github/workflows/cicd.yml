@@ -55,9 +55,16 @@ jobs:
       storage-account-name: ${{ needs.setup-remote-state.outputs.storage_account_name }}
     secrets: inherit
 
-  deploy-webapp:
+  get-vm-ip:
     needs: deploy-infrastructure
+    uses: ./.github/workflows/get-ip.yml
+    secrets: inherit
+
+  deploy-webapp:
+    needs: get-vm-ip
     uses: ./.github/workflows/deploy-webapp.yml
+    with:
+      vm_ip: ${{ needs.get-vm-ip.outputs.vm_ip }}
     secrets: inherit
 
   healthcheck:
