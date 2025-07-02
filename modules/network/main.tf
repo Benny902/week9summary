@@ -34,7 +34,7 @@ resource "azurerm_public_ip" "public_ip" {
   name                = "week9-pip"
   location            = var.location
   resource_group_name = var.rg_name
-  allocation_method   = "Dynamic"
+  allocation_method   = "Static"
   sku                 = "Basic"
 }
 
@@ -46,7 +46,7 @@ resource "azurerm_network_interface" "nic" {
   ip_configuration {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
     public_ip_address_id          = azurerm_public_ip.public_ip.id
   }
 }
